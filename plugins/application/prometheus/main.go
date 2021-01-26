@@ -49,6 +49,25 @@ func (me *metricExpiry) Delete() {
 	me.delete()
 }
 
+type collectorExpiry struct {
+	sync.RWMutex
+	collector *PromCollector
+	delete    func()
+}
+
+func (ce *collectorExpiry) Expired() bool {
+	if ce.collector.descriptions.Len() == 0 {
+		return true
+	}
+	return false
+}
+
+func (ce *collectorExpiry) Delete() {
+	ce.Lock()
+	defer ce.Unlock()
+	ce.delete()
+}
+
 //PromCollector implements prometheus.Collector for incoming metrics. Metrics
 // with differing label dimensions must create separate PromCollectors.
 type PromCollector struct {
@@ -228,6 +247,16 @@ func (p *Prometheus) Run(ctx context.Context, eChan chan data.Event, mChan chan 
 				labelLenStr := fmt.Sprintf("%d", len(m.Labels))
 				if !p.collectors.Contains(labelLenStr) {
 					c := NewPromCollector(p.logger)
+					ce := &collectorExpiry{
+						collector: c,
+						delete: func() {
+							p.logger.Metadata(logging.Metadata{"plugin": "prometheus"})
+							p.logger.Warn("prometheus collector expired")
+							registry.Unregister(c)
+							p.collectors.Delete(string(labelLenStr))
+						},
+					}
+					p.expiry.register(ce)
 					p.collectors.Set(string(labelLenStr), c)
 					registry.MustRegister(c)
 				}
