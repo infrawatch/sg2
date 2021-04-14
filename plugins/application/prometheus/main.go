@@ -29,6 +29,7 @@ type configT struct {
 	Port               int  `validate:"required"`
 	WithTimestamp      bool `yaml:"withTimeStamp"`
 	ExpirationMultiple int  `yaml:"expirationMultiple"` // multiple of metric interval at which that metric should be expired (seconds)
+	ServeCache         bool `yaml:"serveCache"`         // serve cache at /content
 }
 
 // used to expire stale metrics
@@ -304,6 +305,10 @@ func (p *Prometheus) Run(ctx context.Context, done chan bool) {
 	// Set up Metric Exporter
 	handler := http.NewServeMux()
 	handler.Handle("/metrics", promhttp.HandlerFor(p.registry, promhttp.HandlerOpts{}))
+
+	if p.configuration.ServeCache {
+		handler.HandleFunc("/content", p.contentHandler)
+	}
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write([]byte(`<html>
                                 <head><title>Prometheus Exporter</title></head>

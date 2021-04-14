@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/infrawatch/apputils/logging"
@@ -28,12 +29,18 @@ type eventOutput struct {
 	Annotations map[string]interface{}
 }
 
+type metricWrapper struct {
+	last   time.Time
+	metric data.Metric
+}
+
 // Print plugin suites for logging both internal buses to a file.
 type Print struct {
 	configuration configT
 	logger        *logging.Logger
 	eChan         chan data.Event
 	mChan         chan data.Metric
+	metrics       sync.Map
 }
 
 // New constructor
