@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/infrawatch/apputils/logging"
-	"github.com/infrawatch/sg-core/pkg/concurrent"
 	"github.com/infrawatch/sg-core/pkg/data"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -227,13 +226,29 @@ func TestElasticsearchApp(t *testing.T) {
 		app := New(logger)
 		err := app.Config([]byte(testConf))
 		require.NoError(t, err)
+
+		// test parsed and default values
+		es := app.(*Elasticsearch)
+		assert.Equal(t, "http://localhost:9200", es.configuration.HostURL)
+		assert.Equal(t, false, es.configuration.UseTLS)
+		assert.Equal(t, "", es.configuration.TLSServerName)
+		assert.Equal(t, "", es.configuration.TLSClientCert)
+		assert.Equal(t, "", es.configuration.TLSClientKey)
+		assert.Equal(t, "", es.configuration.TLSCaCert)
+		assert.Equal(t, false, es.configuration.UseBasicAuth)
+		assert.Equal(t, "", es.configuration.User)
+		assert.Equal(t, "", es.configuration.Password)
+		assert.Equal(t, 1, es.configuration.BufferSize)
+		assert.Equal(t, false, es.configuration.BulkIndex)
+		assert.Equal(t, 3, es.configuration.IndexWorkers)
+		assert.Equal(t, []string{"unit-test"}, es.configuration.ResetIndices)
 	})
 
 	t.Run("Test event message processing", func(t *testing.T) {
 		results := make(chan esIndex, len(eventCases))
 		app := &Elasticsearch{
 			logger: logger,
-			buffer: concurrent.NewMap(),
+			buffer: make(map[string][]string),
 			dump:   results,
 		}
 		err := app.Config([]byte(testConf))
@@ -255,7 +270,7 @@ func TestElasticsearchApp(t *testing.T) {
 		results := make(chan esIndex, len(logCases))
 		app := &Elasticsearch{
 			logger: logger,
-			buffer: concurrent.NewMap(),
+			buffer: make(map[string][]string),
 			dump:   results,
 		}
 		err := app.Config([]byte(testConf))

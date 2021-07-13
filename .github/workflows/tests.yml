@@ -34,6 +34,8 @@ jobs:
           skip-build-cache: true
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.33
+          # golangci-lint command line arguments.
+          args: --exclude=SA4008
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-20.04
@@ -57,7 +59,7 @@ jobs:
           done
           docker logs elastic
           echo "========================== loki ========================="
-          while ! curl -sX GET "http://127.0.0.1:3100/loki/api/v1/ready"
+          while ! curl -sX GET "http://127.0.0.1:3100/ready" | grep -q "^ready$"
           do
             sleep 1
           done

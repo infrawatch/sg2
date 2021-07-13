@@ -68,7 +68,7 @@ jobs:
           done
           docker logs elastic
           echo "========================== loki ========================="
-          while ! curl -sX GET "http://127.0.0.1:3100/loki/api/v1/ready"
+          while ! curl -sX GET "http://127.0.0.1:3100/ready" | grep -q "^ready$"
           do
             sleep 1
           done
